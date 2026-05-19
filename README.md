@@ -89,7 +89,7 @@ flowchart LR
 
 ### 2. 언어모델 (LLM)
 
-어르신과 자연스러운 한국어 대화를 주고받는 부분입니다. 한국어에 강한 **EXAONE-3.5-7.8B-Instruct**(LG AI Research)를 기본 모델로 쓰고, `llama.cpp` 서버로 추론합니다.
+어르신과 자연스러운 한국어 대화를 주고받는 부분. 한국어에 강한 **EXAONE-3.5-7.8B-Instruct**(LG AI Research)를 기본 모델로 쓰고, `llama.cpp` 서버로 추론.
 
 | 항목 | 내용 |
 | :--- | :--- |
