@@ -136,7 +136,8 @@ flowchart LR
 
 ### 5. 응급 판단 (Emergency Decision)
 
-낙상이나 응급 발화 같은 위험 신호를 받아 **4단계 상태머신**으로 응급 여부를 판정하고, 오경보를 거른 뒤 경보를 발령. 구현: `release/emergency/mind_care_emergency/`
+낙상이나 응급 발화 같은 위험 신호를 받아 **4단계 상태머신**으로 응급 여부를 판정하고, 오경보를 거른 뒤 경보를 발령. 
+구현: `release/emergency/mind_care_emergency/`
 
 ```mermaid
 stateDiagram-v2
