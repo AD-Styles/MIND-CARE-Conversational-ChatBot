@@ -157,7 +157,7 @@ stateDiagram-v2
 - **EMERGENCY** — 경보 발령. 보호자가 확인(ACK)하면 `ACKED`, 일정 시간 응답이 없으면 `NORMAL`로 자동 복귀해 다음 응급에 대비
 - **ACKED** — 보호자 확인 완료. 쿨다운 후 `NORMAL`
 
-응급 발화는 질환명이 아니라 **본인이 위급함을 호소하는 표현**("도와줘 · 살려줘 · 숨을 못 쉬" 등)으로 감지합니다. `EMERGENCY`에 진입하면 경보가 `alert_dispatcher`를 통해 **GPIO · 스피커 부저 · FCM 푸시 · SMS**로, `api_gateway`를 통해 **보호자 웹**으로 동시에 전파됩니다.
+응급 발화는 질환명이 아니라 **본인이 위급함을 호소하는 표현**("도와줘 · 살려줘 · 숨을 못 쉬" 등)으로 감지함. `EMERGENCY`에 진입하면 경보가 `alert_dispatcher`를 통해 **GPIO · 스피커 부저 · FCM 푸시 · SMS**로, `api_gateway`를 통해 **보호자 웹**으로 동시에 전파됨.
 
 ### 6. 하드웨어 구성
 
@@ -175,7 +175,7 @@ stateDiagram-v2
 
 ## 🚀 빠른 시작 (Quick Start)
 
-전체 설치 절차는 [`SETUP.md`](SETUP.md), Jetson 상세 가이드는 [`XAVIER_INSTALL_GUIDE.md`](XAVIER_INSTALL_GUIDE.md)를 참고하세요.
+전체 설치 절차는 [`SETUP.md`](SETUP.md), Jetson 상세 가이드는 [`XAVIER_INSTALL_GUIDE.md`](XAVIER_INSTALL_GUIDE.md)를 참고해주세요.
 
 ```bash
 # 1) 의존성 설치 (가상환경)
@@ -197,8 +197,6 @@ ros2 launch mind_care_vision hri_system.launch.py
 ---
 
 ## ✨ 주요 결과 및 분석 (Key Findings & Analysis)
-
-개발하면서 직접 부딪혀 보고 내린 결정들입니다.
 
 | 발견 / 결정 | 내용 |
 | :--- | :--- |
