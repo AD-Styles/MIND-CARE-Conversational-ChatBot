@@ -94,10 +94,10 @@ flowchart LR
 | 항목 | 내용 |
 | :--- | :--- |
 | **기본 모델** | EXAONE-3.5-7.8B-Instruct — 한국어 네이티브 (대체 모델: Qwen2.5-3B) |
-| **경량화** | GGUF 양자화 — `Q3_K_M`(속도) / `Q4_K_M`(품질), 약 4~4.7 GB |
+| **경량화** | GGUF 양자화 — `Q3_K_M`(속도) / `Q4_K_M`(품질), 약 4\~4.7 GB |
 | **추론 환경** | llama.cpp 서버 · GPU 부분 오프로드 · 컨텍스트 2048 토큰 |
 
-`llm_dialogue_node`는 가장 최근 발화만 처리해 지연이 쌓이지 않게 하고, RAG가 켜져 있으면 관련 의료 지식을 프롬프트에 함께 넣어 요청합니다. 페르소나는 70~80대 어르신을 돌보는 다정한 말벗 으로, 1~2문장으로 짧게 답하며 **의학적 진단이나 약 복용 지시는 하지 않도록** 시스템 프롬프트로 제약했습니다.
+`llm_dialogue_node`는 가장 최근 발화만 처리해 지연이 쌓이지 않게 하고, RAG가 켜져 있으면 관련 의료 지식을 프롬프트에 함께 넣어 요청합니다. 페르소나는 70\~80대 어르신을 돌보는 다정한 말벗 으로, 1\~2문장으로 짧게 답하며 **의학적 진단이나 약 복용 지시는 하지 않도록** 시스템 프롬프트로 제약했습니다.
 
 ### 3. 의료 지식 검색 (RAG)
 
@@ -233,7 +233,7 @@ ros2 launch mind_care_vision hri_system.launch.py
 
 **프로젝트 문서**
 - [`SETUP.md`](SETUP.md) — 설치 및 환경 구성
-- [`XAVIER_INSTALL_GUIDE.md`](XAVIER_INSTALL_GUIDE.md) — Jetson AGX Xavier 상세 설치 (플래시 ~ 자동시작)
+- [`XAVIER_INSTALL_GUIDE.md`](XAVIER_INSTALL_GUIDE.md) — Jetson AGX Xavier 상세 설치 (플래시 \~ 자동시작)
 - [`HANDOVER.md`](HANDOVER.md) — 코드베이스 인수인계 / 구성 개요
 - [`결과보고서_초안.md`](결과보고서_초안.md) — 프로젝트 개요 · 아키텍처 · 평가 결과
 
