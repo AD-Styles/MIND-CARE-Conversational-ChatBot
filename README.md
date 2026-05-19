@@ -116,7 +116,8 @@ flowchart LR
 
 ### 4. 낙상 감지 (Fall Detection)
 
-카메라 영상에서 자세를 추정하고, **매 프레임의 낙상 여부를 시간 윈도우로 누적**해 순간 오검출을 거른 뒤 실제 낙상을 확정. 구현: `release/vision/mind_care_perception/`
+카메라 영상에서 자세를 추정하고, **매 프레임의 낙상 여부를 시간 윈도우로 누적**해 순간 오검출을 거른 뒤 실제 낙상을 확정. 
+<br/>구현: `release/vision/mind_care_perception/`
 
 ```mermaid
 flowchart LR
@@ -137,7 +138,7 @@ flowchart LR
 ### 5. 응급 판단 (Emergency Decision)
 
 낙상이나 응급 발화 같은 위험 신호를 받아 **4단계 상태머신**으로 응급 여부를 판정하고, 오경보를 거른 뒤 경보를 발령. 
-구현: `release/emergency/mind_care_emergency/`
+<br/>구현: `release/emergency/mind_care_emergency/`
 
 ```mermaid
 stateDiagram-v2
