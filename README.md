@@ -93,7 +93,7 @@ flowchart LR
 
 | 항목 | 내용 |
 | :--- | :--- |
-| **기본 모델** | EXAONE-3.5-7.8B-Instruct — 한국어 네이티브 (대체 모델: Qwen2.5-3B) |
+| **기본 모델** | EXAONE-3.5-7.8B-Instruct — 한국어 네이티브 (대체 모델: Qwen2.5-3B-Instruct) |
 | **경량화** | GGUF 양자화 — `Q3_K_M`(속도) / `Q4_K_M`(품질), 약 4\~4.7 GB |
 | **추론 환경** | llama.cpp 서버 · GPU 부분 오프로드 · 컨텍스트 2048 토큰 |
 
@@ -101,7 +101,7 @@ flowchart LR
 
 ### 3. 의료 지식 검색 (RAG)
 
-건강 관련 질문에 **신뢰할 수 있는 의료 정보를 근거로** 답하기 위한 검색 증강 생성(RAG) 모듈입니다. **서울아산병원 질환백과**(17개 진료 분야)를 `BAAI/bge-m3` 임베딩으로 벡터화해 ChromaDB에 색인하고, 질문과 유사한 상위 문서를 찾아 LLM 프롬프트에 근거로 넣습니다.
+건강 관련 질문에 **신뢰할 수 있는 의료 정보를 근거로** 답하기 위한 검색 증강 생성(RAG) 모듈입니다. **서울아산병원 질환백과**(17개 진료 분야)를 다국어 임베딩 모델(`paraphrase-multilingual-MiniLM-L12-v2`)로 벡터화해 ChromaDB에 색인하고, 질문과 유사한 상위 문서를 찾아 LLM 프롬프트에 근거로 넣습니다. Xavier 배포 단계에서는 한국어 의료 용어에 더 강한 `BAAI/bge-m3`(1024차원)로 재색인할 계획입니다.
 
 검색 결과는 "진단 · 처방 금지" 같은 사용 규칙과 함께 시스템 메시지로 주입되어, LLM이 임의로 지어내지 않고 **검색된 근거 안에서만** 답하도록 유도합니다.
 
@@ -225,7 +225,7 @@ ros2 launch mind_care_vision hri_system.launch.py
 **기술 스택 & 데이터**
 - [EXAONE-3.5-7.8B-Instruct](https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct) — LG AI Research 한국어 LLM
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) — GGUF 양자화 모델 추론 엔진
-- [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) — 다국어 임베딩 모델 (RAG)
+- 임베딩 모델 — [`paraphrase-multilingual-MiniLM-L12-v2`](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) (현재) / [`BAAI/bge-m3`](https://huggingface.co/BAAI/bge-m3) (Xavier 배포 예정)
 - [ChromaDB](https://www.trychroma.com/) — 벡터 데이터베이스
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) — 자세 추정(pose) 모델
 - 서울아산병원 질환백과 — 의료 지식 코퍼스 출처
