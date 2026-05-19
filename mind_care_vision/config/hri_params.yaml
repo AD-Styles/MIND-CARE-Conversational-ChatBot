@@ -1,0 +1,59 @@
+# 마음돌봄 Vision — ROS 2 HRI 시스템 파라미터
+# 환경별 override: hri_params.wsl.yaml / hri_params.xavier.yaml
+
+audio_bridge_node:
+  ros__parameters:
+    model_size: "small"
+    device: "cpu"            # WSL CUDA 13.2 이슈로 CPU 사용. Xavier에서는 "cuda"
+    compute_type: "int8"     # cuda일 때는 "float16"
+    language: "ko"
+    sample_rate: 16000
+    vad_aggressiveness: 2
+    min_silence_ms: 600
+    min_speech_ms: 300
+    max_segment_s: 15.0
+    input_device: -1         # -1=default (PulseAudio via libasound2-plugins)
+    # 화자 검증 (resemblyzer)
+    sv_enabled: true
+    sv_embedding_path: "/home/eslee03/models/speaker.npy"
+    sv_threshold: 0.75       # 0.0~1.0, 본인도 REJECT 면 0.65 로 낮추기
+
+llm_dialogue_node:
+  ros__parameters:
+    llm_endpoint: "http://127.0.0.1:8080/v1/chat/completions"
+    model_name: "local"
+    max_tokens: 200
+    temperature: 0.7
+    history_turns: 6
+    request_timeout_s: 30.0
+    min_input_chars: 2
+    sv_enabled: true
+    rag_enabled: true
+    guardrails_enabled: false
+    # RAG (Chroma persistent, 다중 컬렉션)
+    rag_index_dir: "/home/eslee03/마음돌봄/med_data/chroma_db"
+    # med_disease(아산병원 질환 백과) 를 우선, med_blog(광고 필터된 블로그) 를 보조
+    rag_collections: ["med_disease", "med_blog"]
+    rag_embed_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # Xavier 이전 후 "BAAI/bge-m3" 로 교체
+    rag_top_k: 3
+    rag_min_score: 0.25
+
+tts_node:
+  ros__parameters:
+    tts_backend: "edge"           # edge(온라인/고품질) | melo(오프라인/고품질) | coqui | espeak
+    # Edge TTS 설정
+    edge_voice: "ko-KR-InJoonNeural"  # InJoon(남) / Hyunsu(남,다국어) / SunHi(여)  ※ edge-tts에서 한국어는 3개만 지원
+    edge_rate: "+8%"               # 활기찬 남성 톤 — 약간 빠르게. 차분하게 하려면 "-5%"
+    edge_pitch: "+0Hz"
+    # MeloTTS 설정 (오프라인)
+    melo_language: "KR"
+    melo_speaker: "KR"
+    melo_speed: 0.95              # 노인 친화: 약간 느리게
+    # Coqui 설정 (참고)
+    coqui_model: "tts_models/ko/kss/tacotron2-DDC"
+    # 공통
+    device: "cpu"
+    output_device: -1
+    sample_rate_hint: 22050
+    speaking_rate: 1.0
+    drop_if_busy: true

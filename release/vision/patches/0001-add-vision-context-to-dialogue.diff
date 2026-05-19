@@ -1,0 +1,157 @@
+From: 마음돌봄 vision Phase 1
+Subject: [PATCH] llm_dialogue_node: /vision/state 구독 + 시스템 프롬프트 주입
+
+vision_emulator_node (또는 향후 DeepStream 노드) 가 발행하는
+/vision/state JSON 을 구독해, 어르신의 현재 표정·존재·인식 결과를
+LLM 시스템 메시지에 컨텍스트로 주입한다.
+
+  - 새 파라미터: vision_enabled (default False), vision_topic, vision_stale_s
+  - 새 콜백:    _on_vision_state
+  - _respond 안: RAG 블록 다음, history 앞에 vision 컨텍스트 system 메시지 삽입
+
+Vision 데이터가 너무 오래되면(`vision_stale_s` 초과) 무시한다.
+
+적용:
+  cd ~/마음돌봄/mind_care_vision
+  git apply ~/마음돌봄/release/vision/patches/0001-add-vision-context-to-dialogue.diff
+  # 또는 patch -p1 < ...
+
+---
+ mind_care_vision/llm_dialogue_node.py | 87 ++++++++++++++++++++++++++++++++++-
+ 1 file changed, 86 insertions(+), 1 deletion(-)
+
+diff --git a/mind_care_vision/llm_dialogue_node.py b/mind_care_vision/llm_dialogue_node.py
+--- a/mind_care_vision/llm_dialogue_node.py
++++ b/mind_care_vision/llm_dialogue_node.py
+@@ -73,6 +73,12 @@ class LlmDialogueNode(Node):
+         )
+         self.declare_parameter("rag_top_k", 3)
+         self.declare_parameter("rag_min_score", 0.25)
++
++        # --- Vision 컨텍스트 (Phase 1: 에뮬레이터, Phase 2+: DeepStream) ---
++        self.declare_parameter("vision_enabled", False)
++        self.declare_parameter("vision_topic", "/vision/state")
++        # 이 시간(초) 보다 오래된 vision 데이터는 무시
++        self.declare_parameter("vision_stale_s", 3.0)
+
+         self.endpoint = self.get_parameter("llm_endpoint").value
+         self.model_name = self.get_parameter("model_name").value
+@@ -110,6 +116,16 @@ class LlmDialogueNode(Node):
+                 )
+                 self._rag = None
+
++        # --- Vision state (lazy subscribe) ---
++        self._vision_state: dict = {}
++        self._vision_ts: float = 0.0
++        if self.get_parameter("vision_enabled").value:
++            topic = self.get_parameter("vision_topic").value
++            self.create_subscription(String, topic, self._on_vision_state, 10)
++            self.get_logger().info(
++                f"Vision context enabled. topic={topic}"
++            )
++
+         self._history: "deque[dict]" = deque(maxlen=self.history_turns * 2)
+         self._turn_id = 0
+         self._lock = threading.Lock()
+@@ -123,9 +139,37 @@ class LlmDialogueNode(Node):
+             f"history_turns={self.history_turns}, "
+             f"hooks(sv={self.get_parameter('sv_enabled').value}, "
+             f"rag={self.get_parameter('rag_enabled').value}, "
++            f"vision={self.get_parameter('vision_enabled').value}, "
+             f"guard={self.get_parameter('guardrails_enabled').value})"
+         )
+
++    # ------------------------------------------------------------------
++    # Vision 콜백
++    # ------------------------------------------------------------------
++    def _on_vision_state(self, msg: String) -> None:
++        try:
++            state = json.loads(msg.data)
++            if not isinstance(state, dict):
++                return
++        except Exception as exc:
++            self.get_logger().warn(f"Bad vision payload: {exc}")
++            return
++        with self._lock:
++            self._vision_state = state
++            self._vision_ts = time.time()
++
++    def _vision_context_block(self) -> str | None:
++        """현재 vision 상태를 LLM 시스템 메시지로 변환. stale/empty 이면 None."""
++        with self._lock:
++            state = dict(self._vision_state)
++            ts = self._vision_ts
++        if not state:
++            return None
++        stale_s = float(self.get_parameter("vision_stale_s").value)
++        if (time.time() - ts) > stale_s:
++            return None
++        return _format_vision_for_prompt(state)
++
+     def _on_transcript(self, msg: String):
+         try:
+             payload = json.loads(msg.data)
+@@ -174,6 +218,12 @@ class LlmDialogueNode(Node):
+                 except Exception as exc:
+                     self.get_logger().warn(f"RAG retrieve failed: {exc}")
+
++            # --- Vision 컨텍스트 주입 ---
++            if self.get_parameter("vision_enabled").value:
++                vblock = self._vision_context_block()
++                if vblock:
++                    messages.append({"role": "system", "content": vblock})
++
+             messages.extend(list(self._history))
+             messages.append({"role": "user", "content": user_text})
+
+@@ -226,6 +276,41 @@ class LlmDialogueNode(Node):
+         )
+
+
++# ----------------------------------------------------------------------
++# Vision 상태 → LLM 시스템 메시지 포맷터
++# ----------------------------------------------------------------------
++_EMOTION_KO = {
++    "angry": "화가 나신",
++    "disgust": "불쾌해 보이시는",
++    "fear": "불안해 보이시는",
++    "happy": "기분 좋으신",
++    "neutral": "평온하신",
++    "sad": "슬퍼 보이시는",
++    "surprise": "놀라신",
++    "unknown": "표정이 잘 보이지 않는",
++}
++
++
++def _format_vision_for_prompt(state: dict) -> str:
++    """vision JSON → 노인 친화 한글 컨텍스트.
++
++    예: "[감지 정보] 어르신이 카메라 앞에 계시고, 표정은 슬퍼 보입니다 (74%).
++         인식: 철수 어르신. 이 정보를 자연스럽게 반영해 답하되, 직접 언급하지 마세요."
++    """
++    presence = bool(state.get("presence"))
++    emotion = str(state.get("emotion") or "unknown").lower()
++    conf = float(state.get("emotion_conf") or 0.0)
++    name = str(state.get("face_name") or "")
++    fall = bool(state.get("fall_detected"))
++
++    if not presence:
++        return ("[감지 정보] 지금 카메라 앞에 어르신이 보이지 않습니다. "
++                "응답은 가볍고 짧게, 부담 없는 안부 위주로 해 주세요.")
++
++    parts = []
++    emo_ko = _EMOTION_KO.get(emotion, "")
++    if emo_ko:
++        parts.append(f"표정은 {emo_ko} 모습 (신뢰도 {int(conf*100)}%)")
++    if name:
++        parts.append(f"인식: {name}")
++    if fall:
++        parts.append("⚠️ 낙상이 감지되어 있음 — 즉시 안부와 함께 보호자/119 연락을 부드럽게 권유")
++    detail = ", ".join(parts) if parts else "어르신이 카메라 앞에 계심"
++    return (f"[감지 정보] {detail}. 이 정보를 자연스럽게 반영해 답하되, "
++            "분석 결과를 그대로 언급하지는 마세요.")
++
++
+ def main():
+     rclpy.init()
+     node = LlmDialogueNode()

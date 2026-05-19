@@ -1,0 +1,17 @@
+# 시연·운영 환경에서 ros2 launch 인자로 덮어씀.
+emergency_decider_node:
+  ros__parameters:
+    elder_id: "elder_01"
+    query_timeout_s: 30.0
+    cooldown_s: 60.0
+    long_idle_threshold_s: 21600.0
+    query_speech: "괜찮으세요?"
+    long_idle_speech: "오래 조용하셨네요. 거기 계세요?"
+
+alert_dispatcher_node:
+  ros__parameters:
+    # auto: 자격증명 있으면 실채널, 없으면 mock fallback
+    # mock: 무조건 mock + 부저
+    dispatch_mode: "auto"
+    fcm_credentials_path: ""
+    dispatch_period_s: 1.0

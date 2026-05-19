@@ -1,0 +1,95 @@
+# 마음돌봄 Vision — Xavier (JetPack 5.1.x / R35.6.4, 32GB) 환경 override
+#
+# 실제 환경: Ubuntu 20.04 + Python 3.8 + CUDA 11.4 + TRT 8.5 + ROS Foxy + user 계정.
+# 원본(JP6 가정)은 *.jp6.bak 에 백업됨.
+#
+# 사용:
+#   ros2 launch mind_care_vision hri_system.launch.py \
+#       config_file:=$HOME/마음돌봄/mind_care_vision/config/hri_params.xavier.yaml
+#
+# WSL 대비 변경점:
+#   - audio_bridge_node : CUDA + float16 (faster-whisper GPU 가속)
+#   - llm_dialogue_node : RAG 임베딩 MiniLM 384d (기존 chroma_db 재사용)
+
+audio_bridge_node:
+  ros__parameters:
+    model_size: "small"        # 응급어("도와줘") 인식 정확도 우선 — base 는 오인식 잦음.
+    device: "cpu"              # CTranslate2 wheel (Jetson용) 이 CUDA 빌드 아니라 CPU 사용.
+    compute_type: "int8"       # CPU 일 때 int8
+    language: "ko"
+    sample_rate: 16000
+    vad_aggressiveness: 2
+    min_silence_ms: 600
+    min_speech_ms: 300
+    max_segment_s: 10.0
+    # PulseAudio 'pulse' 디바이스(29) 사용 — default source=FIFINE K678(44.1kHz),
+    # sounddevice 인덱스는 USB 디바이스 꽂는 순서에 따라 동적으로 바뀜.
+    # -1 이면 코드가 None 으로 변환 → PulseAudio default source 로 자동 라우팅.
+    # 시연 직전 FIFINE 으로 default source 설정 필요:
+    #   pactl set-default-source alsa_input.usb-FIFINE_Microphones_FIFINE_K678_*-iec958-stereo
+    input_device: -1
+    # TTS 재생 끝난 뒤 마이크를 다시 열기까지 대기 시간(초). 스피커 잔향/지연 흡수.
+    tts_guard_tail_s: 1.5
+    # 화자 검증
+    sv_enabled: false  # TEMP: LLVM RuntimeDyld assertion 디버그용 — 검증 끝나면 true 복귀
+    sv_embedding_path: "/home/user/models/speaker.npy"
+    sv_threshold: 0.75         # 본인도 거부 → 0.65, 외부인 통과 → 0.80
+
+llm_dialogue_node:
+  ros__parameters:
+    llm_endpoint: "http://127.0.0.1:8080/v1/chat/completions"
+    model_name: "local"        # llama.cpp 서버 식별자 (실제 모델은 start_llama_server.sh 가 결정)
+    # Xavier Volta(sm_72) decode ~9 tok/s — 응답 44 tok 으로 제한해 LLM+TTS 체감 단축.
+    # system prompt 가 "1~2문장" 강조이므로 EOS 조기 도달 흔함.
+    max_tokens: 44
+    temperature: 0.7
+    history_turns: 6
+    request_timeout_s: 30.0
+    min_input_chars: 2
+    # stale-drop — 응답 시작 시점에 이보다 오래 지연된 발화는 폐기(밀림 누적 차단).
+    stale_transcript_s: 12.0
+    sv_enabled: false  # TEMP: LLVM RuntimeDyld assertion 디버그용 — 검증 끝나면 true 복귀
+    rag_enabled: true
+    guardrails_enabled: false
+    # RAG (bge-m3 1024d, Xavier 에서 재빌드 후)
+    rag_index_dir: "/home/user/마음돌봄/med_data/chroma_db"
+    rag_collections: ["med_disease", "med_blog"]
+    # ⚠️ rag_embed_model 을 바꾸면 반드시 chroma_db 재빌드 필요 (차원 불일치 시 못 씀)
+    # 옵션 A : MiniLM (384d)
+    # rag_embed_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    # 옵션 B (권장, Xavier 적용) : bge-m3 1024d
+    rag_embed_model: "BAAI/bge-m3"
+    rag_top_k: 3
+    rag_min_score: 0.25
+
+tts_node:
+  ros__parameters:
+    # Xavier 가 인터넷에 연결되면 edge 가 가장 자연스러움
+    # 오프라인 환경이면 melo (오프라인 한국어 TTS)
+    tts_backend: "edge"
+    edge_voice: "ko-KR-InJoonNeural"
+    edge_rate: "+8%"
+    edge_pitch: "+0Hz"
+    melo_language: "KR"
+    melo_speaker: "KR"
+    melo_speed: 0.95
+    coqui_model: "tts_models/ko/kss/tacotron2-DDC"
+    device: "cuda"             # MeloTTS 사용 시 GPU 가속
+    # sounddevice 인덱스는 USB 디바이스 꽂는 순서에 따라 동적으로 바뀜.
+    # -1 이면 코드가 None 으로 변환 → sounddevice default 사용 →
+    # PulseAudio default sink 로 자동 라우팅 (pactl set-default-sink 로 결정).
+    # 시연 환경에서 default sink 가 C-Media USB Audio Device 인지 확인:
+    #   pactl info | grep "Default Sink"
+    output_device: -1
+    sample_rate_hint: 22050
+    speaking_rate: 1.0
+    drop_if_busy: true
+
+emergency_decider_node:
+  ros__parameters:
+    # 응급 상태머신 타이밍 (초). 값 미지정 시 노드 코드 기본값 사용.
+    query_timeout_s: 30.0          # 낙상 후 무응답 → EMERGENCY 전환 대기
+    cooldown_s: 60.0               # ACKED → NORMAL 자동 복귀
+    # EMERGENCY 진입 후 ACK 가 안 오면 NORMAL 로 자동 복귀(re-arm).
+    # 시연 템포에 맞춰 조정 — 짧게 하면 응급 시연 반복이 빨라짐.
+    emergency_auto_clear_s: 20.0

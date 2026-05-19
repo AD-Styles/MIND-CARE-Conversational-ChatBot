@@ -1,0 +1,41 @@
+# ----------------------------------------------------------------------
+# PGIE — YOLOv8n-pose (1-class person + 17 keypoints, NMS-baked ONNX)
+#
+#   - Input  : 640×640 RGB
+#   - Output : (1, 300, 57) — NMS 후 박스 + 17 COCO keypoint
+#   - Parser : libnvdsinfer_custom_impl_yolov8_pose.so :: NvDsInferParseYoloPose
+#              (src/parser_yolov8_pose/Makefile 로 빌드)
+#
+# `output-tensor-meta=1` 로 raw 텐서를 같이 흘려 보낸다 — ROS 노드 측 probe
+# 가 이 텐서에서 keypoint 채널 (row[6..56]) 을 직접 읽는다.
+# ----------------------------------------------------------------------
+[property]
+gpu-id=0
+# 1/255
+net-scale-factor=0.0039215686274509803
+# 0=RGB
+model-color-format=0
+onnx-file=../../models/pose_estimator/yolov8n_pose.onnx
+model-engine-file=../../models/pose_estimator/yolov8n_pose.engine
+labelfile-path=labels_pose.txt
+batch-size=1
+# FP16
+network-mode=2
+num-detected-classes=1
+interval=0
+gie-unique-id=10
+process-mode=1
+# 0=detector
+network-type=0
+maintain-aspect-ratio=1
+symmetric-padding=1
+infer-dims=3;640;640
+parse-bbox-func-name=NvDsInferParseYoloPose
+custom-lib-path=../../models/pose_estimator/libnvdsinfer_custom_impl_yolov8_pose.so
+# 4 = no clustering (NMS baked)
+cluster-mode=4
+# raw output 텐서를 메타데이터로 함께 발행 → probe 에서 keypoint 추출
+output-tensor-meta=1
+
+[class-attrs-all]
+pre-cluster-threshold=0.10

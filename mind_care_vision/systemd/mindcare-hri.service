@@ -1,0 +1,27 @@
+[Unit]
+Description=Mind Care - ROS HRI nodes
+After=mindcare-llama.service network-online.target
+Requires=mindcare-llama.service
+
+[Service]
+Type=simple
+User=user
+Group=user
+WorkingDirectory=/home/user/마음돌봄
+Environment=HOME=/home/user
+# user (UID 1000) 세션의 PulseAudio 서버에 붙기 위해 — audio_bridge_node 마이크 입력,
+# tts_node 출력 디바이스 둘 다 pulse client 필요.
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+# llama 모델 로드 대기 (start_llama_server.sh exec 시점 ~ /health ready 까지 안전 마진)
+ExecStartPre=/bin/sleep 30
+# start_hri.sh 가 /opt/ros/{foxy,humble,jazzy} 자동 검출. llama 이미 떠 있으면 자동 스킵.
+ExecStart=/bin/bash /home/user/마음돌봄/mind_care_vision/scripts/start_hri.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=180
+StandardOutput=append:/var/log/mindcare-hri.log
+StandardError=append:/var/log/mindcare-hri.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,99 @@
+# 마음돌봄 Vision — Jetson AGX Xavier (JetPack 5.1.x / R35.6.4) 전용 requirements
+#
+# 원본(JP6 가정)은 requirements.xavier.txt.jp6.bak 에 백업됨.
+#
+# 환경 가정 (실제):
+#   - Ubuntu 20.04 LTS (focal) → ROS 2 Foxy native
+#   - Python 3.8.10 (Ubuntu 20.04 기본)
+#   - CUDA 11.4 / TensorRT 8.5.2 / cuDNN 8.6
+#   - Compute capability 7.2 (sm_72)
+#
+# ⚠️ 절대 `pip install torch` 하지 말 것! NVIDIA Jetson JP5 wheel 만 사용.
+#
+# 설치 순서:
+#   1. apt 패키지 (xavier_bootstrap.sh §1)
+#   2. ROS 2 Foxy (xavier_bootstrap.sh §2)
+#   3. Python venv: python3.8 -m venv .venv-ros --system-site-packages
+#   4. NVIDIA torch JP5 wheel 수동 설치:
+#        wget https://developer.download.nvidia.com/compute/redist/jp/v512/pytorch/torch-2.1.0a0+41361538.nv23.06-cp38-cp38-linux_aarch64.whl
+#        pip install ./torch-2.1.0a0+41361538.nv23.06-cp38-cp38-linux_aarch64.whl
+#   5. pip install -r requirements.xavier.txt
+
+# ============================================================
+# 🔴 NVIDIA Jetson 공식 wheels — 별도 설치 (pip install 안 됨)
+# ============================================================
+# torch / torchvision / torchaudio 는 NVIDIA 가 빌드한 aarch64 wheel 만 사용.
+#
+# JetPack 5.1.x (CUDA 11.4):
+#   https://developer.download.nvidia.com/compute/redist/jp/v512/pytorch/torch-2.1.0a0+41361538.nv23.06-cp38-cp38-linux_aarch64.whl
+# torchvision/torchaudio 는 source build 필요 (JP5 사전빌드 wheel 없음):
+#   git clone --branch v0.16.2 https://github.com/pytorch/vision torchvision
+#   cd torchvision && python setup.py install
+
+# torch>=2.1,<2.3              # JP5 NVIDIA wheel 만! pypi 의 cpu/cuda 빌드 절대 안 됨
+# torchvision>=0.16,<0.18      # source build
+# torchaudio>=2.1,<2.3         # source build (선택)
+
+# ============================================================
+# 일반 Python 패키지 (pip install OK, aarch64 wheel 또는 source 빌드)
+# ============================================================
+# numpy 는 시스템 패키지(/usr/lib/python3/dist-packages) 를 --system-site-packages 로 노출.
+# venv 에 재설치하면 ROS Foxy rclpy ABI 가 깨질 위험. 함정 #3 참조.
+# numpy==1.24.4
+scipy>=1.10,<1.11              # Python 3.8 마지막 안정 라인
+
+# --- Embedding ---
+# Python 3.8 지원하는 transformers 마지막 메이저: 4.46
+transformers>=4.36,<4.47
+sentence-transformers>=2.7,<3.1
+huggingface_hub>=0.20,<0.25
+tokenizers>=0.15,<0.21
+
+# --- Vector DB ---
+# chromadb 0.5.x 가 Python 3.8 마지막 호환
+chromadb>=0.5,<0.6
+langchain>=0.2,<0.4
+langchain-core>=0.2,<0.4
+langchain-chroma>=0.1,<0.2
+langchain-huggingface>=0.0.3,<0.2
+langchain-community>=0.2,<0.4
+
+# --- Audio ASR ---
+# faster-whisper 1.0.3 가 ctranslate2 4.x 와 Python 3.8 함께 OK
+faster-whisper>=1.0,<1.1
+ctranslate2>=4.4,<4.5          # CUDA 11.x 마지막 라인 (4.5+ 는 CUDA 12 only)
+sounddevice==0.5.5
+webrtcvad==2.0.10
+
+# --- 화자 검증 ---
+Resemblyzer==0.1.4
+# numba 0.58.x 가 Python 3.8 마지막 → coverage_support stub 패치 필요
+
+# --- TTS ---
+edge-tts>=7.0,<8.0
+
+# --- LLM client ---
+requests>=2.31
+
+# --- Emergency / Alert ---
+firebase-admin>=6.5,<7.0
+twilio>=9.0,<10.0
+
+# --- API Gateway ---
+# pydantic v2 + Python 3.8 호환: 2.10.x 까지
+fastapi>=0.110,<0.116
+uvicorn[standard]>=0.30,<0.33
+pydantic>=2.8,<2.11
+pydantic-settings>=2.5,<2.7
+SQLAlchemy>=2.0,<2.1
+# PEP 604 (`X | None`) 평가용 — Python 3.8 venv 에서 fastapi 의존성 해석 시 필요
+eval_type_backport>=0.2,<0.4
+
+# --- 평가 ---
+pytest>=7.4,<8.4
+pytest-cov>=4.1
+
+# ============================================================
+# Jetson 전용 추가
+# ============================================================
+Jetson.GPIO>=2.1               # 부저 GPIO 제어

@@ -1,0 +1,12 @@
+# 환경변수로 덮어쓸 수 있다. (priority: CLI > env > 이 파일)
+api_gateway_node:
+  host: "0.0.0.0"
+  port: 8000
+  elder_id: "elder_01"
+  # 비워두면 ~/마음돌봄/release/emergency/state/mindcare.db
+  db_path: ""
+  # 시연용 — 인증 우회. 운영에서는 false.
+  dev_open: false
+  # CORS — 쉼표로 여러 origin 지정 가능. "*" 는 모바일 앱 release 빌드에는 OK,
+  # 웹 대시보드는 정확한 origin 으로 좁히는 게 안전.
+  cors: "*"

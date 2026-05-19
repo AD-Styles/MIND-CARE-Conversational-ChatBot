@@ -1,0 +1,114 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.o
+*.a
+*.egg-info/
+.eggs/
+build/
+dist/
+*.whl
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- 가상환경 ---
+.venv-ros/
+.venv/
+venv/
+env/
+
+# --- 학습/데이터 (대용량) ---
+# JSONL + Chroma (109MB+)
+med_data/
+# GGUF, *.pt, *.onnx, *.engine
+models/
+# 학습 데이터셋
+data/
+# 학습 결과
+runs/
+*.gguf
+*.pt
+*.onnx
+*.engine
+*.npy
+
+# 단, 화자 임베딩 위치만 표기
+!**/.gitkeep
+
+# --- 로그/캐시 ---
+*.log
+.cache/
+*.bak
+*.bak.*
+*.orig
+*~
+
+# --- 평가 산출물 ---
+eval_results/
+eval/
+urfdd/
+*.mp4
+*.avi
+*.mov
+
+# --- ROS 2 빌드 산출물 (외부 ws) ---
+log/
+install/
+
+# --- 런타임 상태 (SQLite) ---
+release/emergency/state/
+*.db
+*.db-shm
+*.db-wal
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# --- 에디터/도구 ---
+.cursor/
+.claude/
+
+# --- 압축본 / 패키지 (Xavier 이전 산출물 등) ---
+*.zip
+*.tar
+*.tar.gz
+*.tar.zst
+*.tgz
+*.7z
+*.deb
+
+# --- 런타임 로그 디렉터리 (체인/health/smoke 등) ---
+logs/
+
+# --- 비밀/자격증명 ---
+.env
+.env.local
+*.pem
+*.key
+firebase-credentials.json
+twilio-credentials.json
+secrets/
+
+# --- Notebook 출력 ---
+.ipynb_checkpoints/
+
+# --- DB ---
+*.sqlite
+*.sqlite3
+*.db
+
+# --- chroma_db 백업 ---
+chroma_db/
+chroma_db.*.bak/
+
+# --- Firebase 자격증명 ---
+google-services.json
+GoogleService-Info.plist

@@ -1,0 +1,22 @@
+[Unit]
+Description=Mind Care - llama-server (EXAONE-3.5-7.8B)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=user
+Group=user
+WorkingDirectory=/home/user/마음돌봄
+Environment=HOME=/home/user
+# Xavier 7.8B Q3_K_M (start_llama_server.sh 기본). 메모리 빠듯하면 SAFE_MODE=1 또는 NGL=<33.
+ExecStart=/bin/bash /home/user/마음돌봄/mind_care_vision/scripts/start_llama_server.sh
+Restart=on-failure
+RestartSec=5
+# 모델 로드(7.8B) 대기 여유
+TimeoutStartSec=120
+StandardOutput=append:/var/log/mindcare-llama.log
+StandardError=append:/var/log/mindcare-llama.log
+
+[Install]
+WantedBy=multi-user.target

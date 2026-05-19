@@ -1,0 +1,57 @@
+# 마음돌봄 Vision — 직접 의존성 (transitive 제외)
+# WSL 24.04 (Python 3.12) 에서 검증된 버전.
+# Xavier (JetPack 6 / Python 3.10) 에서는 requirements.xavier.txt 우선.
+#
+# 사용:
+#   ~/마음돌봄/.venv-ros/bin/pip install -r requirements.core.txt
+#
+# 재현 (모든 transitive 포함):
+#   pip install -r requirements.full.txt        # pip freeze 전체
+
+# --- ML / Embedding (RAG) ---
+torch==2.11.0
+torchvision==0.26.0
+torchaudio==2.11.0
+numpy==1.26.4               # rclpy ABI 호환 위해 1.26.x 고정
+scipy==1.17.1
+transformers==5.6.0
+sentence-transformers==5.4.1
+huggingface_hub==1.11.0
+
+# --- Vector DB (RAG) ---
+chromadb==1.5.8
+langchain==1.2.15
+langchain-core==1.3.0
+langchain-chroma==1.1.0
+langchain-huggingface==1.2.2
+langchain-text-splitters==1.1.2
+langchain-community==0.4.1
+
+# --- Audio ASR ---
+faster-whisper==1.2.1
+sounddevice==0.5.5
+webrtcvad==2.0.10
+
+# --- 화자 검증 (resemblyzer + librosa/numba 우회) ---
+Resemblyzer==0.1.4
+
+# --- TTS ---
+edge-tts==7.2.8
+
+# --- LLM client ---
+requests>=2.31
+
+# --- Emergency / Alert ---
+firebase-admin==6.9.0
+twilio==9.10.5
+
+# --- API Gateway ---
+fastapi==0.115.14
+uvicorn[standard]>=0.30
+pydantic==2.13.3
+pydantic-settings==2.14.0
+SQLAlchemy==2.0.49
+
+# --- 평가/유틸 ---
+pytest==7.4.4
+pytest-cov==4.1.0

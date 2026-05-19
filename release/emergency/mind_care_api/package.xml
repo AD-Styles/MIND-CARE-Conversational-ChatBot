@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mind_care_api</name>
+  <version>0.1.0</version>
+  <description>마음돌봄 외부 API 게이트웨이 (FastAPI + WebSocket).</description>
+  <maintainer email="team-potato@example.com">포테토 팀</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>mind_care_emergency</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

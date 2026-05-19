@@ -1,0 +1,39 @@
+# 적용 방법:
+#   cd ~/마음돌봄/mind_care_vision
+#   git apply ~/마음돌봄/release/emergency/patches/0001-add-proactive-speech.diff
+#
+# llm_dialogue_node 가 /dialogue/proactive_speech (std_msgs/String) 를 구독해
+# 텍스트가 들어오면 일반 대화 흐름과 별개로 곧장 TTS 로 발화한다.
+# (Phase 5 Decider 가 능동 발화를 시키는 채널)
+
+--- a/mind_care_vision/llm_dialogue_node.py
++++ b/mind_care_vision/llm_dialogue_node.py
+@@ -10,6 +10,9 @@ class LlmDialogueNode(Node):
+         super().__init__("llm_dialogue_node")
+         # ... (기존 파라미터/초기화)
+
++        # Phase 5 — 능동 발화 (Decider 의 "괜찮으세요?")
++        self.create_subscription(String, "/dialogue/proactive_speech",
++                                 self._on_proactive_speech, 10)
+
+     def _respond(self, user_text: str) -> str:
+         # ... (기존 응답 흐름)
+@@ -120,3 +123,18 @@ class LlmDialogueNode(Node):
+         tts_msg = String()
+         tts_msg.data = reply
+         self._tts_pub.publish(tts_msg)
++
++    # ------------------------------------------------------------------
++    # Phase 5 능동 발화 — 일반 대화 흐름과 별개로 즉시 TTS
++    # ------------------------------------------------------------------
++    def _on_proactive_speech(self, msg: String) -> None:
++        text = (msg.data or "").strip()
++        if not text:
++            return
++        # 진행 중인 사용자 응답 생성을 막진 않음 — TTS 를 먼저 끼워 넣음.
++        self.get_logger().info(f"[proactive] {text}")
++        tts_msg = String()
++        tts_msg.data = text
++        self._tts_pub.publish(tts_msg)
++        # 대화 history 에 system 발화로도 누적 (모델 컨텍스트 유지)
++        self._history.append({"role": "assistant", "content": text})

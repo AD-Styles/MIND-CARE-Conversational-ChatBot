@@ -1,0 +1,43 @@
+# NvDCF tracker (low-compute) — 단일 어르신 트래킹용 가벼운 프로필
+# 자세한 옵션은 /opt/nvidia/deepstream/deepstream/samples/configs/deepstream-app/config_tracker_NvDCF_perf.yml 참조
+%YAML:1.0
+
+BaseConfig:
+  minDetectorConfidence: 0.0   # PGIE 임계값을 그대로 사용
+
+TargetManagement:
+  enableBboxUnClipping: 1
+  maxTargetsPerStream: 4
+  minIouDiff4NewTarget: 0.5
+  minTrackerConfidence: 0.2
+  probationAge: 3
+  maxShadowTrackingAge: 30
+  earlyTerminationAge: 1
+
+TrajectoryManagement:
+  useUniqueID: 1
+
+DataAssociator:
+  dataAssociatorType: 0
+  associationMatcherType: 0
+  checkClassMatch: 1
+  minMatchingScore4Overall: 0.0
+  minMatchingScore4SizeSimilarity: 0.6
+  minMatchingScore4Iou: 0.0
+  minMatchingScore4VisualSimilarity: 0.5
+  matchingScoreWeight4VisualSimilarity: 0.6
+  matchingScoreWeight4SizeSimilarity: 0.0
+  matchingScoreWeight4Iou: 0.4
+
+StateEstimator:
+  stateEstimatorType: 1   # Constant velocity
+
+VisualTracker:
+  visualTrackerType: 1    # NvDCF
+  useColorNames: 1
+  useHog: 1
+  featureImgSizeLevel: 2
+  SearchRegionPaddingScale: 3
+  filterLr: 0.075
+  filterChannelWeightsLr: 0.1
+  gaussianSigma: 0.75

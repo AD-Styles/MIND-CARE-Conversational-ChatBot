@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마음돌봄 — 보호자 알림 (Demo)</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #1a1d24;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --ok: #34a853;
+    --warn: #fbbc04;
+    --crit: #ea4335;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    padding: 14px 20px;
+    background: var(--panel);
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #2a2e36;
+  }
+  header .title { font-weight: 700; font-size: 18px; }
+  header .status { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+  header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  header .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  header .dot.err { background: var(--crit); }
+  header button.audio-toggle {
+    background: var(--warn); color: black; border: 0; border-radius: 6px;
+    padding: 6px 14px; font-weight: 700; cursor: pointer; font-size: 13px;
+    margin-left: 12px;
+  }
+  header button.audio-toggle.armed { background: var(--ok); color: black; }
+  header button.audio-toggle:hover { filter: brightness(1.1); }
+  main { flex: 1; padding: 20px; max-width: 960px; width: 100%; margin: 0 auto; }
+  .card {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid #2a2e36;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 14px; color: var(--muted);
+             text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .state-normal { font-size: 32px; font-weight: 700; color: var(--ok); }
+  .state-warn   { font-size: 32px; font-weight: 700; color: var(--warn); }
+  .state-crit   { font-size: 32px; font-weight: 700; color: var(--crit); }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .history { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+  .history .row { padding: 8px 0; border-bottom: 1px solid #2a2e36; }
+  .history .row:last-child { border: 0; }
+  .history .ts { color: var(--muted); margin-right: 8px; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+  }
+  .badge.fall, .badge.panic_word { background: var(--crit); color: white; }
+  .badge.long_idle { background: var(--warn); color: black; }
+  .badge.false_alarm { background: var(--muted); color: black; }
+
+  /* 알람 오버레이 — 풀스크린 빨강 + 사이렌 */
+  #overlay {
+    position: fixed; inset: 0;
+    background: #8b0000;
+    color: white;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    z-index: 999;
+    animation: flash 1s steps(2, end) infinite;
+  }
+  #overlay.visible { display: flex; }
+  @keyframes flash {
+    0%   { background: #8b0000; }
+    50%  { background: #ea4335; }
+    100% { background: #8b0000; }
+  }
+  #overlay .siren { font-size: 120px; line-height: 1; }
+  #overlay .label { font-size: 48px; font-weight: 800; margin-top: 8px; }
+  #overlay .detail { font-size: 22px; margin-top: 14px; opacity: .9; }
+  #overlay .ts { font-size: 14px; margin-top: 18px; opacity: .8;
+                 font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  #overlay button {
+    margin-top: 30px; padding: 14px 36px; font-size: 18px; font-weight: 700;
+    background: white; color: #8b0000; border: 0; border-radius: 8px;
+    cursor: pointer;
+  }
+  #overlay button:hover { background: #f0f0f0; }
+
+  /* 작은 화면 */
+  @media (max-width: 600px) {
+    .state-normal, .state-warn, .state-crit { font-size: 24px; }
+    #overlay .siren { font-size: 80px; }
+    #overlay .label { font-size: 32px; }
+    #overlay .detail { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">마음돌봄 · 보호자 알림</div>
+  <div class="status">
+    <span id="connDot" class="dot"></span>
+    <span id="connText">연결 중…</span>
+    <button id="audioToggle" class="audio-toggle" title="브라우저 정책상 한 번 클릭이 필요합니다">🔔 소리 켜기</button>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <h2>현재 상태</h2>
+    <div id="currentState" class="state-normal">정상</div>
+    <div id="currentMeta" class="meta">최근 메시지 없음</div>
+  </div>
+
+  <div class="card">
+    <h2>최근 알림 (최대 20건)</h2>
+    <div id="history" class="history">
+      <div class="row" style="color:var(--muted)">(아직 없음)</div>
+    </div>
+  </div>
+</main>
+
+<div id="overlay" role="alertdialog" aria-modal="true">
+  <div class="siren">🚨</div>
+  <div class="label" id="ovLabel">긴급 상황</div>
+  <div class="detail" id="ovDetail"></div>
+  <div class="ts" id="ovTs"></div>
+  <button id="ovDismiss">확인</button>
+</div>
+
+<!-- 알람음은 Web Audio API 로 합성 (OscillatorNode). alarm.wav 는 paplay 미리듣기/문서용. -->
+
+<script>
+(() => {
+  // ---- URL 파라미터 ----
+  const qs = new URLSearchParams(location.search);
+  const elderId = qs.get("elder_id") || "elder_01";
+  const token   = qs.get("token");          // dev_open=1 면 생략 가능
+  const apiHost = qs.get("host") || location.host || "127.0.0.1:8000";
+  const wsProto = location.protocol === "https:" ? "wss" : "ws";
+
+  // ---- DOM ----
+  const dot     = document.getElementById("connDot");
+  const txt     = document.getElementById("connText");
+  const stateEl = document.getElementById("currentState");
+  const metaEl  = document.getElementById("currentMeta");
+  const histEl  = document.getElementById("history");
+  const ov      = document.getElementById("overlay");
+  const ovLabel = document.getElementById("ovLabel");
+  const ovDetail= document.getElementById("ovDetail");
+  const ovTs    = document.getElementById("ovTs");
+  document.getElementById("ovDismiss").addEventListener("click", () => {
+    ov.classList.remove("visible");
+    stopSiren();
+  });
+
+  // ---- 오디오 — Web Audio API 사이렌 합성 ----
+  // <audio> 태그 + autoplay 정책이 안정적이지 않아 OscillatorNode 로 생성.
+  // user gesture (소리 켜기 클릭) 로 AudioContext.resume() 한 뒤에는 어떤 알람이든 자유 재생.
+  let audioCtx = null;
+  let audioArmed = false;
+  let sirenTimer = null;
+  let sirenOsc = null;
+  let sirenGain = null;
+
+  function ensureCtx() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    return audioCtx;
+  }
+
+  function playSiren() {
+    const ctx = ensureCtx();
+    if (!ctx) return;
+    stopSiren();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 900;
+    gain.gain.value = 0.25;       // 음량 (0..1)
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    sirenOsc = osc; sirenGain = gain;
+    // 900 ↔ 600 Hz 교대 (200ms)
+    let hi = true;
+    sirenTimer = setInterval(() => {
+      hi = !hi;
+      osc.frequency.setValueAtTime(hi ? 900 : 600, ctx.currentTime);
+    }, 200);
+  }
+
+  function stopSiren() {
+    if (sirenTimer) { clearInterval(sirenTimer); sirenTimer = null; }
+    if (sirenOsc) {
+      try { sirenOsc.stop(); } catch (e) {}
+      try { sirenOsc.disconnect(); } catch (e) {}
+      sirenOsc = null;
+    }
+    if (sirenGain) { try { sirenGain.disconnect(); } catch (e) {} sirenGain = null; }
+  }
+
+  const audioBtn = document.getElementById("audioToggle");
+  audioBtn.addEventListener("click", async () => {
+    const ctx = ensureCtx();
+    if (!ctx) {
+      audioBtn.textContent = "🔕 미지원";
+      return;
+    }
+    try {
+      await ctx.resume();
+      // 0.15s 짧은 테스트 비프 — 클릭 즉시 들려서 unlock 성공 확인
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine"; osc.frequency.value = 1000; g.gain.value = 0.15;
+      osc.connect(g).connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.15);
+      audioArmed = true;
+      audioBtn.textContent = "🔔 소리 켜짐";
+      audioBtn.classList.add("armed");
+    } catch (e) {
+      audioBtn.textContent = "🔕 차단됨";
+      console.warn("AudioContext resume 실패:", e);
+    }
+  });
+
+  // ---- 알림 히스토리 ----
+  const history = [];
+  const MAX_HIST = 20;
+
+  const TYPE_LABEL = {
+    fall: "낙상 감지",
+    panic_word: "응급 발화",
+    long_idle: "장시간 무활동",
+    false_alarm: "오탐 해제",
+  };
+  const TYPE_DESC = {
+    fall: "어르신 낙상이 감지되었습니다.",
+    panic_word: "어르신이 도움을 요청하셨습니다.",
+    long_idle: "활동 신호가 오래 없습니다.",
+    false_alarm: "이전 알람이 해제되었습니다.",
+  };
+
+  function fmtTs(epoch) {
+    if (!epoch) return "";
+    const d = new Date(epoch * 1000);
+    const pad = n => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function renderHistory() {
+    if (!history.length) {
+      histEl.innerHTML = '<div class="row" style="color:var(--muted)">(아직 없음)</div>';
+      return;
+    }
+    histEl.innerHTML = history.slice().reverse().map(a => `
+      <div class="row">
+        <span class="ts">${fmtTs(a.ts)}</span>
+        <span class="badge ${a.type}">${a.type}</span>
+        <span> ${TYPE_LABEL[a.type] || a.type}</span>
+        <span style="color:var(--muted)"> · ${a.severity || ""} · ${a.status || ""}</span>
+      </div>
+    `).join("");
+  }
+
+  function applyState(kind, label, detail) {
+    stateEl.className = `state-${kind}`;   // normal | warn | crit
+    stateEl.textContent = label;
+    metaEl.textContent = detail;
+  }
+
+  function showOverlay(alert) {
+    ovLabel.textContent = TYPE_LABEL[alert.type] || "긴급 상황";
+    ovDetail.textContent = TYPE_DESC[alert.type] || alert.type;
+    ovTs.textContent = `alert_id=${alert.alert_id} · ${fmtTs(alert.ts)}`;
+    ov.classList.add("visible");
+    if (audioArmed) playSiren();
+    else console.warn("소리 차단 — 상단 '🔔 소리 켜기' 버튼 먼저 클릭");
+  }
+
+  function handleMsg(msg) {
+    if (!msg || !msg.type) return;
+    if (msg.type === "status") {
+      const d = msg.data || {};
+      applyState("normal", "정상", `state=${d.state || "?"} · ${fmtTs(d.ts)}`);
+    } else if (msg.type === "alert") {
+      const a = msg.data || {};
+      history.push(a);
+      while (history.length > MAX_HIST) history.shift();
+      renderHistory();
+      const sev = a.severity || "warning";
+      const kind = sev === "critical" ? "crit" : sev === "warning" ? "warn" : "normal";
+      applyState(kind,
+        TYPE_LABEL[a.type] || a.type || "알림",
+        `${a.status || ""} · ${fmtTs(a.ts)}`);
+      if (sev === "critical" || a.type === "fall" || a.type === "panic_word") {
+        showOverlay(a);
+      }
+    } else if (msg.type === "alert_status" || msg.type === "delivery") {
+      // 후속 상태 갱신만 — overlay 는 띄우지 않음
+      const a = msg.data || {};
+      metaEl.textContent = `${msg.type}: ${a.status || ""} ${a.alert_id || ""}`;
+    }
+  }
+
+  // ---- WebSocket 재연결 루프 ----
+  let ws = null;
+  let reconnectMs = 1000;
+
+  function setConn(state, label) {
+    dot.className = "dot " + (state === "ok" ? "ok" : state === "err" ? "err" : "");
+    txt.textContent = label;
+  }
+
+  function connect() {
+    const params = new URLSearchParams({ elder_id: elderId });
+    if (token) params.set("token", token);
+    const url = `${wsProto}://${apiHost}/api/v1/stream?${params}`;
+    setConn("", `연결 중… (${url})`);
+    try {
+      ws = new WebSocket(url);
+    } catch (e) {
+      setConn("err", `소켓 생성 실패: ${e.message}`);
+      scheduleReconnect();
+      return;
+    }
+    ws.onopen = () => {
+      setConn("ok", `연결됨 · elder=${elderId}`);
+      reconnectMs = 1000;
+    };
+    ws.onmessage = ev => {
+      try { handleMsg(JSON.parse(ev.data)); }
+      catch (e) { console.warn("parse 실패", e, ev.data); }
+    };
+    ws.onerror = () => setConn("err", "오류 — 재연결 시도");
+    ws.onclose = ev => {
+      setConn("err", `끊김 (code=${ev.code}) — 재연결 ${(reconnectMs/1000).toFixed(0)}s 후`);
+      scheduleReconnect();
+    };
+  }
+  function scheduleReconnect() {
+    setTimeout(connect, reconnectMs);
+    reconnectMs = Math.min(reconnectMs * 2, 15000);
+  }
+
+  // ---- 시작 ----
+  applyState("normal", "정상", "최근 메시지 없음");
+  connect();
+})();
+</script>
+</body>
+</html>

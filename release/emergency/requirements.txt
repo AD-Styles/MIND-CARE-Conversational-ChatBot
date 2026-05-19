@@ -1,0 +1,9 @@
+# mind_care_api / mind_care_emergency Python 의존성 (venv-ros 에 추가).
+fastapi>=0.110,<0.116
+uvicorn[standard]>=0.27,<0.32
+pydantic>=2.6,<3
+sqlalchemy>=2.0,<2.1
+
+# 선택 — 자격증명이 있을 때만 동작 (없으면 dispatcher 가 자동 mock fallback)
+firebase-admin>=6.4,<7
+twilio>=8.13,<10

@@ -1,0 +1,35 @@
+# ----------------------------------------------------------------------
+# SGIE — Mini-Xception emotion classifier (FER 7-class)
+#
+#   - Input  : 1×48×48 GRAY
+#   - operate-on-gie-id=1 → PGIE(face) 의 모든 박스에 대해 분류
+#
+# 주의 : GLib key-file 파서는 인라인 `#` 주석을 허용하지 않음.
+# ----------------------------------------------------------------------
+[property]
+gpu-id=0
+# 1/255
+net-scale-factor=0.0039215686274509803
+# 2=GRAY
+model-color-format=2
+onnx-file=../../models/emotion_classifier/mini_xception.onnx
+model-engine-file=../../models/emotion_classifier/mini_xception.engine
+labelfile-path=labels_emotion.txt
+batch-size=8
+# FP16
+network-mode=2
+num-detected-classes=7
+gie-unique-id=2
+operate-on-gie-id=1
+operate-on-class-ids=0
+# 2=secondary classifier
+process-mode=2
+# 1=classifier
+network-type=1
+classifier-async-mode=0
+# 임계값은 노드 측에서 처리
+classifier-threshold=0.0
+infer-dims=1;48;48
+input-object-min-width=24
+input-object-min-height=24
+maintain-aspect-ratio=0
