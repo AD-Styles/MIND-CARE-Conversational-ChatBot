@@ -54,7 +54,7 @@
 └─ HANDOVER.md                        # 코드베이스 인수인계 / 구성 개요
 ```
 
-> 📱 보호자 Flutter 앱(`urgent_alarm_app/`)을 빌드하려면 본인 Firebase 프로젝트의 `google-services.json`을 `urgent_alarm_app/android/app/`에 직접 배치해야 하며, 보안상 저장소에 포함되지 않습니다..
+> 📱 보호자 Flutter 앱(`urgent_alarm_app/`)을 빌드하려면 본인 Firebase 프로젝트의 `google-services.json`을 `urgent_alarm_app/android/app/`에 직접 배치해야 하며, 보안상 저장소에 포함되지 않습니다.
 
 **ROS 2 패키지 (4개)**
 
